@@ -30,8 +30,8 @@ def mul (x y : Triple) : Triple :=
 def norm (x : Triple) : Int :=
   x.1^3 + 2*x.2.1^3 + 4*x.2.2^3 - 6*x.1*x.2.1*x.2.2
 
-theorem norm_mul (x y : Triple) : norm (mul x y) = norm x * norm y := by
-  dsimp [norm, mul]
+theorem norm_mul (x y : Triple) : BealCubicNorm.norm (mul x y) = BealCubicNorm.norm x * BealCubicNorm.norm y := by
+  dsimp [BealCubicNorm.norm, mul]
   grind
 
 theorem mul_assoc (x y z : Triple) : mul (mul x y) z = mul x (mul y z) := by
@@ -57,8 +57,8 @@ def epsInv : Triple := (1,1,1)
 theorem eps_mul_inv : mul eps epsInv = one := by decide
 theorem inv_mul_eps : mul epsInv eps = one := by decide
 
-theorem eps_norm : norm eps = 1 := by decide
-theorem epsInv_norm : norm epsInv = 1 := by decide
+theorem eps_norm : BealCubicNorm.norm eps = 1 := by decide
+theorem epsInv_norm : BealCubicNorm.norm epsInv = 1 := by decide
 
 
 end BealCubicNorm
@@ -147,8 +147,8 @@ theorem finite_cover : ∀ i j k : Fin 6, ∃ s t u : Fin 2,
 theorem norm_bounds (B C T : BoxInterval) {d x y z : Int} (hd : 0 ≤ d)
     (hx : d*B.lo ≤ x ∧ x ≤ d*B.hi) (hy : d*C.lo ≤ y ∧ y ≤ d*C.hi)
     (hz : d*T.lo ≤ z ∧ z ≤ d*T.hi) :
-    d^3*(normBounds B C T).lo ≤ norm (x,y,z) ∧
-      norm (x,y,z) ≤ d^3*(normBounds B C T).hi := by
+    d^3*(normBounds B C T).lo ≤ BealCubicNorm.norm (x,y,z) ∧
+      BealCubicNorm.norm (x,y,z) ≤ d^3*(normBounds B C T).hi := by
   have hp := product_bounds B C hd hd hx hy
   have hp' := product_bounds (product B C) T (Int.mul_nonneg hd hd) hd hp hz
   have hc1 := cube_bounds B hx
@@ -180,7 +180,7 @@ private theorem locate (x d : Int) (hd : 0 < d) (hx : 0 ≤ x ∧ x < d) :
 there is an integral triple with the absolute norm of the numerator error
 strictly less than d³. -/
 theorem approximate (x y z d : Int) (hd : 0 < d) :
-    ∃ a b c : Int, (norm (x-a*d, y-b*d, z-c*d)).natAbs < (d^3).natAbs := by
+    ∃ a b c : Int, (BealCubicNorm.norm (x-a*d, y-b*d, z-c*d)).natAbs < (d^3).natAbs := by
   have inside (t : Int) : 0 ≤ t%d ∧ t%d < d :=
     ⟨Int.emod_nonneg _ (by omega), Int.emod_lt_of_pos _ hd⟩
   obtain ⟨i, hi⟩ := locate _ _ hd (inside x)
@@ -196,13 +196,13 @@ theorem approximate (x y z d : Int) (hd : 0 < d) :
     grind
   have h := norm_bounds _ _ _ (d := d) (by omega) (hi s) (hj t) (hk u)
   rw [trans, trans, trans] at h
-  let N := norm (x-a*d, y-b*d, z-c*d)
+  let N := BealCubicNorm.norm (x-a*d, y-b*d, z-c*d)
   let bound := normBounds (cell i s) (cell j t) (cell k u)
-  have hhom : norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) = 216*N := by
-    dsimp only [norm,N]
+  have hhom : BealCubicNorm.norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) = 216*N := by
+    dsimp only [BealCubicNorm.norm,N]
     grind
-  change d^3*bound.lo ≤ norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) ∧
-    norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) ≤ d^3*bound.hi at h
+  change d^3*bound.lo ≤ BealCubicNorm.norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) ∧
+    BealCubicNorm.norm (6*(x-a*d), 6*(y-b*d), 6*(z-c*d)) ≤ d^3*bound.hi at h
   rw [hhom] at h
   have hd3 : 0 < d^3 := Int.pow_pos hd
   have l := Int.mul_le_mul_of_nonneg_left hl (show 0 ≤ d^3 by omega)
@@ -228,7 +228,7 @@ private theorem even_of_cube (a t : Int) (h : a^3 = 2*t) : a = 2*(a/2) := by
 
 /-- Successive division of the norm equation by 2 and 4 shows that all
 three coordinates of a zero of the norm are even. -/
-theorem even_coords_of_norm_zero (a b c : Int) (h : norm (a,b,c) = 0) :
+theorem even_coords_of_norm_zero (a b c : Int) (h : BealCubicNorm.norm (a,b,c) = 0) :
     a = 2*(a/2) ∧ b = 2*(b/2) ∧ c = 2*(c/2) := by
   change a^3 + 2*b^3 + 4*c^3 - 6*a*b*c = 0 at h
   have ha := even_of_cube a (3*a*b*c-b^3-2*c^3) (by grind)
@@ -241,7 +241,7 @@ theorem even_coords_of_norm_zero (a b c : Int) (h : norm (a,b,c) = 0) :
   rw [hj] at h
   exact ⟨ha, hb, even_of_cube c (3*i*j*c-i^3-2*j^3) (by grind)⟩
 
-private theorem zero_coords (a b c : Int) (h : norm (a,b,c) = 0) : a = 0 ∧ b = 0 ∧ c = 0 := by
+private theorem zero_coords (a b c : Int) (h : BealCubicNorm.norm (a,b,c) = 0) : a = 0 ∧ b = 0 ∧ c = 0 := by
   obtain ⟨ha,hb,hc⟩ := even_coords_of_norm_zero a b c h
   by_cases hz : a = 0 ∧ b = 0 ∧ c = 0
   · exact hz
@@ -265,15 +265,15 @@ private theorem zero_coords (a b c : Int) (h : norm (a,b,c) = 0) : a = 0 ∧ b =
           · exact Or.inr (Or.inl (Int.natAbs_pos.mpr hb0))
         · exact Or.inl (Int.natAbs_pos.mpr ha0)
       omega
-    have hnorm : norm (i,j,k) = 0 := by
+    have hnorm : BealCubicNorm.norm (i,j,k) = 0 := by
       rw [hi,hj,hk] at h
-      dsimp [norm] at h ⊢
+      dsimp [BealCubicNorm.norm] at h ⊢
       grind
     obtain ⟨r,s,t⟩ := zero_coords i j k hnorm
     omega
 termination_by a.natAbs+b.natAbs+c.natAbs
 
-theorem norm_eq_zero_iff (x : Triple) : norm x = 0 ↔ x = (0,0,0) := by
+theorem norm_eq_zero_iff (x : Triple) : BealCubicNorm.norm x = 0 ↔ x = (0,0,0) := by
   obtain ⟨a,b,c⟩ := x
   constructor
   · intro h
@@ -298,8 +298,8 @@ def sub (x y : Triple) : Triple :=
 def scale (k : Int) (x : Triple) : Triple :=
   (x.1*k,x.2.1*k,x.2.2*k)
 
-theorem mul_adj (x : Triple) : mul x (adj x) = (norm x,0,0) := by
-  dsimp [mul, adj, norm]
+theorem mul_adj (x : Triple) : mul x (adj x) = (BealCubicNorm.norm x,0,0) := by
+  dsimp [mul, adj, BealCubicNorm.norm]
   grind
 
 private theorem mul_scale (a : Int) (x y : Triple) :
@@ -311,22 +311,22 @@ private theorem mul_sub (x y z : Triple) : mul (sub x y) z = sub (mul x z) (mul 
   dsimp [mul,sub]
   grind
 
-private theorem norm_scale (d : Int) (x : Triple) : norm (scale d x) = d^3 * norm x := by
-  dsimp [norm,scale]
+private theorem norm_scale (d : Int) (x : Triple) : BealCubicNorm.norm (scale d x) = d^3 * BealCubicNorm.norm x := by
+  dsimp [BealCubicNorm.norm,scale]
   grind
 
 private theorem error_mul (x y m : Triple) :
-    mul (sub (mul x (adj y)) (scale (norm y) m)) y = scale (norm y) (sub x (mul m y)) := by
+    mul (sub (mul x (adj y)) (scale (BealCubicNorm.norm y) m)) y = scale (BealCubicNorm.norm y) (sub x (mul m y)) := by
   rw [mul_sub, BealCubicNorm.mul_assoc, BealCubicNorm.mul_comm (adj y), mul_adj, mul_scale]
   dsimp [sub, scale, mul]
   grind
 
 /-- Approximation of every rational triple by an integral triple within unit absolute norm. -/
 def Covers : Prop := ∀ x y z d : Int, 0 < d → ∃ a b c : Int,
-    (norm (x-a*d, y-b*d, z-c*d)).natAbs < (d^3).natAbs
+    (BealCubicNorm.norm (x-a*d, y-b*d, z-c*d)).natAbs < (d^3).natAbs
 
 private theorem approx_signed (h : Covers) (x : Triple) (d : Int) (hd : d ≠ 0) :
-    ∃ m : Triple, (norm (sub x (scale d m))).natAbs < (d^3).natAbs := by
+    ∃ m : Triple, (BealCubicNorm.norm (sub x (scale d m))).natAbs < (d^3).natAbs := by
   by_cases hp : 0 < d
   · obtain ⟨a,b,c,hs⟩ := h x.1 x.2.1 x.2.2 d hp
     exact ⟨(a,b,c),hs⟩
@@ -337,22 +337,22 @@ private theorem approx_signed (h : Covers) (x : Triple) (d : Int) (hd : d ≠ 0)
 
 /-- A strict approximation in the norm yields Euclidean division for any divisor
 of nonzero norm. The remainder is given by x minus the quotient times y. -/
-theorem euclidean_division (h : Covers) (x y : Triple) (hy : norm y ≠ 0) :
-    ∃ m : Triple, (norm (sub x (mul m y))).natAbs < (norm y).natAbs := by
-  obtain ⟨m, hm⟩ := approx_signed h (mul x (adj y)) (norm y) hy
+theorem euclidean_division (h : Covers) (x y : Triple) (hy : BealCubicNorm.norm y ≠ 0) :
+    ∃ m : Triple, (BealCubicNorm.norm (sub x (mul m y))).natAbs < (BealCubicNorm.norm y).natAbs := by
+  obtain ⟨m, hm⟩ := approx_signed h (mul x (adj y)) (BealCubicNorm.norm y) hy
   refine ⟨m, ?_⟩
-  have he := congrArg norm (error_mul x y m)
-  change norm (mul _ y) = norm (scale _ _) at he
-  rw [norm_mul, norm_scale] at he
+  have he := congrArg BealCubicNorm.norm (error_mul x y m)
+  change BealCubicNorm.norm (mul _ y) = BealCubicNorm.norm (scale _ _) at he
+  rw [BealCubicNorm.norm_mul, norm_scale] at he
   have ha := congrArg Int.natAbs he
   simp only [Int.natAbs_mul, Int.natAbs_pow] at ha hm
-  have hpos : 0 < (norm y).natAbs := by omega
+  have hpos : 0 < (BealCubicNorm.norm y).natAbs := by omega
   have hbound := Nat.mul_lt_mul_of_pos_right hm hpos
   rw [ha] at hbound
   exact Nat.lt_of_mul_lt_mul_left hbound
 
 theorem euclidean_division_nonzero (h : Covers) (x y : Triple) (hy : y ≠ (0,0,0)) :
-    ∃ m : Triple, (norm (sub x (mul m y))).natAbs < (norm y).natAbs :=
+    ∃ m : Triple, (BealCubicNorm.norm (sub x (mul m y))).natAbs < (BealCubicNorm.norm y).natAbs :=
   euclidean_division h x y (fun hzero => hy ((norm_eq_zero_iff y).mp hzero))
 
 end BealCubicDivision
@@ -545,7 +545,7 @@ private theorem error_bound (a b c S : Int) (ha : |a| ≤ S) (hb : |b| ≤ S) (h
 /-- If neither elementary unit shortens the triple, the linear form L and
 the quadratic form Q give lower bounds for its height and squared height.
 Their product approximates 10¹² times the integral norm. -/
-private theorem minimal_small (a b c : Int) (hn : |norm (a,b,c)| = 1)
+private theorem minimal_small (a b c : Int) (hn : |BealCubicNorm.norm (a,b,c)| = 1)
     (hf : height (a,b,c) ≤ height (mul (a,b,c) eps))
     (hi : height (a,b,c) ≤ height (mul (a,b,c) epsInv)) :
     max |a| (max |b| |c|) ≤ 5 := by
@@ -586,9 +586,9 @@ private theorem minimal_small (a b c : Int) (hn : |norm (a,b,c)| = 1)
   have hQ : M^2 ≤ 8*Q := twice_square_bound hM hD
   have hQn : 0 ≤ Q := by linarith [sq_nonneg M]
   have hbig := mul_le_mul hL hQ (sq_nonneg M) (mul_nonneg (by decide : (0:Int) ≤ 25) (abs_nonneg L))
-  have hprod : L*Q = 1000000000000*norm (a,b,c) +
+  have hprod : L*Q = 1000000000000*BealCubicNorm.norm (a,b,c) +
       (-(100242201*b^3) - 7952376*c^3 + 104220000*a*b*c) := by
-    dsimp [L,Q,u,v,w,norm]
+    dsimp [L,Q,u,v,w,BealCubicNorm.norm]
     ring
   have hbound : |L| * Q ≤ 1000000000000+212414577*S^3 := by
     calc
@@ -608,10 +608,10 @@ private theorem minimal_small (a b c : Int) (hn : |norm (a,b,c)| = 1)
 
 private theorem coordinate_enumeration : ∀ i j k : Fin 11,
     let x : Triple := ((i.val:Int)-5,(j.val:Int)-5,(k.val:Int)-5)
-    |norm x| = 1 → height x ≤ height (mul x eps) → height x ≤ height (mul x epsInv) →
+    |BealCubicNorm.norm x| = 1 → height x ≤ height (mul x eps) → height x ≤ height (mul x epsInv) →
     x = one ∨ x = (-1,0,0) := by decide +kernel
 
-theorem minimal_unit {x : Triple} (hn : |norm x| = 1)
+theorem minimal_unit {x : Triple} (hn : |BealCubicNorm.norm x| = 1)
     (hf : height x ≤ height (mul x eps)) (hi : height x ≤ height (mul x epsInv)) :
     x = one ∨ x = (-1,0,0) := by
   obtain ⟨a,b,c⟩ := x
@@ -687,20 +687,20 @@ theorem pow_product (x y : Triple) (n : Nat) :
       _ = _ := (BealCubicNorm.mul_assoc _ _ _).symm
 
 /-- Every integral triple of norm ±1 is a sign times an integer power of ε. -/
-theorem units_generated (x : Triple) (hn : |norm x| = 1) :
+theorem units_generated (x : Triple) (hn : |BealCubicNorm.norm x| = 1) :
     ∃ s : Triple, (s = one ∨ s = negOne) ∧ ∃ j : Int, x = mul s (zpowEps j) := by
   generalize he : (height x).toNat = n
   induction n using Nat.strong_induction_on generalizing x with
   | h n ih =>
     have hpos (t : Triple) : 0 ≤ height t := (abs_nonneg _).trans (le_max_left _ _)
     by_cases hf : height (mul x eps) < height x
-    · have hn' : |norm (mul x eps)| = 1 := by rw [norm_mul,eps_norm,Int.mul_one]; exact hn
+    · have hn' : |BealCubicNorm.norm (mul x eps)| = 1 := by rw [BealCubicNorm.norm_mul,eps_norm,Int.mul_one]; exact hn
       have hlt : (height (mul x eps)).toNat < n := by have := hpos (mul x eps); omega
       obtain ⟨s,hs,j,hj⟩ := ih _ hlt _ hn' rfl
       refine ⟨s,hs,j-1,?_⟩
       rw [zpow_pred, ← BealCubicNorm.mul_assoc, ← hj, BealCubicNorm.mul_assoc, eps_mul_inv, BealCubicNorm.mul_one]
     · by_cases hi : height (mul x epsInv) < height x
-      · have hn' : |norm (mul x epsInv)| = 1 := by rw [norm_mul,epsInv_norm,Int.mul_one]; exact hn
+      · have hn' : |BealCubicNorm.norm (mul x epsInv)| = 1 := by rw [BealCubicNorm.norm_mul,epsInv_norm,Int.mul_one]; exact hn
         have hlt : (height (mul x epsInv)).toNat < n := by have := hpos (mul x epsInv); omega
         obtain ⟨s,hs,j,hj⟩ := ih _ hlt _ hn' rfl
         refine ⟨s,hs,j+1,?_⟩
@@ -875,7 +875,7 @@ open BealCubicNorm BealCubicUnits
 
 /-- For every odd exponent there are at most n unit classes modulo n-th powers.
 The representatives are the first n powers of ε = ∛2−1. -/
-theorem units_mod_odd (x : Triple) {n : Nat} (hn : Odd n) (hu : |norm x|=1) :
+theorem units_mod_odd (x : Triple) {n : Nat} (hn : Odd n) (hu : |BealCubicNorm.norm x|=1) :
     ∃ i : Fin n, ∃ y : Triple, x = mul (pow eps i.val) (pow y n) := by
   obtain ⟨s,hs,j,hj⟩ := units_generated x hu
   have hn0 : 0 < n := hn.pos
