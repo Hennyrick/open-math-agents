@@ -1,0 +1,10 @@
+prefix 1 0 8 24 216 1200 8840 58800 423640 3000480 21824208 158964960
+through 100000, 183067 primitive triples
+k=1 passed=174027 exact order=130485
+k=2 passed=7777 exact order=3657
+k=3 passed=1052 exact order=553
+k=4 passed=174 exact order=93
+k=5 passed=31 exact order=21
+k=6 passed=5 exact order=4
+k=7 passed=1 exact order=1
+first sharp multiples of small primes: 5->5 7->7 11->11 13->13 17->17 19->38 23->23 29->29 31->31 37->37 41->41 43->43 47->47 53->53 59->59 61->61 67->67 71->71 73->73 79->79 83->83 89->89 97->97 101->101 103->103 107->107 109->109
