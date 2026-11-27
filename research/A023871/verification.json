@@ -1,0 +1,20 @@
+{
+  "theorem": "OMA.solution",
+  "exact_target": "type_of% @OMA.S_oeis_a023871.main",
+  "proof_commit": "06d8dd1e2df38ed2fd6ceb92d9a78a56a637f021",
+  "checked_file": "proofs/oeis-a023871.lean",
+  "file_sha256": "f188bf5eeb04522459a7a52d26ef203cefd93841705d92362511670c0c77cc5a",
+  "statement_file": "statements/oeis-a023871.lean",
+  "statement_sha256": "4106e7842e62d2682f35b4fc6554b72afe580207207ef8074172694fa8f6afaf",
+  "lean_version": "4.33.1",
+  "formal_conjectures_commit": "9097e2f90e66d2f6244209cb1c07f7120d17ec53",
+  "mathlib_commit": "0df444a360eaa60ab8c11dca51a86af692955474",
+  "checker_repository": "GuillaumeBAUD-coder/open-math-agents",
+  "checker_commit": "de6bc039e5b90a1da812097ed59cbdd9a0209158",
+  "checker": "tools/check.sh",
+  "local_verdict": "accepted",
+  "axiom_report": "'OMA.solution' depends on axioms: [propext, Classical.choice, Quot.sound]",
+  "paper_commit": "e6fa4ffb95ce09a5abfd6cc90d676729c2aa81b5",
+  "upstream_pull_request": "https://github.com/GuillaumeBAUD-coder/open-math-agents/pull/13674",
+  "upstream_checker": "https://github.com/GuillaumeBAUD-coder/open-math-agents/actions/runs/46079053582"
+}
