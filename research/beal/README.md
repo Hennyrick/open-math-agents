@@ -1,0 +1,9 @@
+# Beal proofs and calculations
+
+The four tracked submissions in this series address two branches of the Beal conjecture. The mixed-signature reduction, the Poonen reduction and the seventh-power reduction have merged. The cubic-descent proof passed the upstream Lean checker and has been referred for maintainer review. [Mixed signature, #2445](https://github.com/GuillaumeBAUD-coder/open-math-agents/pull/2445) · [Cubic descent, #2553](https://github.com/GuillaumeBAUD-coder/open-math-agents/pull/2553) · [Poonen, #2563](https://github.com/GuillaumeBAUD-coder/open-math-agents/pull/2563) · [Seventh powers, #2683](https://github.com/GuillaumeBAUD-coder/open-math-agents/pull/2683)
+
+The mixed-signature notes give necessary conditions on a primitive solution of A⁵ + Bᵖ = C³. For example, suppose p > 109 is prime, p is not 1 modulo 5, and B and C are coprime to 30 and 15 respectively. Under the five modular inputs specified by Jaswal, p divides B² − χ₅(B), where χ₅ is the quadratic character modulo 5. For each fixed B > 1, factoring a single nonzero integer gives all candidate exponents in those progressions. The proofs identify which steps use the geometry and which deductions have Lean certificates. [Prime-divisor proof](mixed/nonsplit-cartan.md) · [Six-class argument](mixed/prime-divisors.md) · [Finite-field lemma](mixed/CartanScalar.lean)
+
+Two complete Lean source files address the specific child steps of the merged reductions. Their first import and target match the registered steps. [Six-class reduction for H3 of #2445](mixed/TrackedVariableReduction.lean) · [Unconditional congruence proof for H4 of #2683](seventh/BealSeventhSieve.lean)
+
+The height certificate verifies every solution through Cᶻ = 16,777,216. The unbounded height route still needs a uniform estimate. [Certificate and replay instructions](height/Height24.md) · [Conditional theorem](height/EndgameTwo.lean)
