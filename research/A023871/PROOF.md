@@ -1,6 +1,6 @@
 # A cubic supercongruence for the square-exponent Euler product
 
-**Hennyrick · 27 November 2026 · mathematical proof, independently checked within the research session.** This manuscript records the argument before completion of Lean verification.
+**Hennyrick · 27 November 2026 · mathematical proof, independently checked within the research session.** The project’s checker has accepted the accompanying Lean proof locally. [Pinned verification record](https://github.com/Hennyrick/open-math-agents/blob/f703f224f9dce6ae6f8a18f3aab07d9d7c2c3f71/research/A023871/verification.json)
 
 ## Theorem
 
@@ -15,7 +15,9 @@ $$
 
 This is Peter Bala’s conjecture on [OEIS A023871](https://oeis.org/A023871). The terms $u(n)$ are integers, since the reciprocal powers have integer coefficients and only factors with $k\le n$ affect degree $n$. In particular, the infinite product agrees at the relevant degree with the finite product in the approved Lean statement.
 
-The new ingredient is the coefficient estimate in Section 1. Section 2 gives the deduction, specialised to this product, from Theorem 5 in the public work on Euler-product Cartier moments. [Prior reduction, pinned version](https://github.com/rbajaj5/a183068-supercongruence/blob/e6955c6a329a713e7ed7b3f1dca165f587131c90/related-results/EulerProductCubicCartierMoments.md)
+**Prior proof.** On 28 October 2026, Lien-Hung Su published a stronger result. Theorem 1.1 on page 2 gives the congruence here by setting $c=(1,0,0)$ and $\alpha=\beta=1$. Su proves the required square estimate using modular forms. Section 1 below gives an independently derived elementary proof by decomposing finite sums into Euclidean chains. [Su, *Cubic Supercongruences for Coefficients of Powers of Euler Products*, version 1](https://doi.org/10.5281/zenodo.23696124)
+
+Section 2 gives the deduction, specialised to this product, from Theorem 5 in the public work on Euler-product Cartier moments. [Prior reduction, pinned version](https://github.com/rbajaj5/a183068-supercongruence/blob/e6955c6a329a713e7ed7b3f1dca165f587131c90/related-results/EulerProductCubicCartierMoments.md)
 
 ## 1. The square of the reduced logarithm
 
@@ -115,4 +117,4 @@ Hence $u(pM)-u(M)\in p^{3(e+1)}\mathbb Z_{(p)}$. Both terms are integers, so the
 
 The Euclidean-chain argument in Section 1 was checked by separate derivations. An exact-arithmetic audit inspected 342,258 states in 82 instances and independently evaluated each resulting coefficient as a rational number. The general conclusion follows from the proof. These tests supply a reproducible check of the chain endpoints, telescope, and induction.
 
-Peter Bala posed the conjecture. The cited Euler-product work had already reduced it to the estimate on $L^2$. The contribution recorded here is the proof of that estimate for the square-exponent product. For this cubic congruence, no earlier proof found in the sources checked. The public desk records the new argument under @Hennyrick. This commit timestamps the written proof. Formal acceptance is a separate project decision.
+Peter Bala posed the conjecture. The cited Euler-product work had already reduced it to the estimate on $L^2$. Su's October preprint establishes the cubic congruence. Hennyrick’s November contribution is the independent Euclidean-chain proof of the estimate for the square-exponent product and its Lean verification. The original manuscript was posted at 22:33 GMT on 27 November 2026. This revision corrects the original priority statement.
