@@ -112,4 +112,83 @@ lemma UU_one_sub_ff : UU hp h3 (1 - ff κ u) = -(thk 1 Li2).subst (ff κ u)
 
 end facts
 
+lemma E1_sum {ι : Type*} (s : Finset ι) (f : ι → PK) : E1 (∑ i ∈ s, f i) = ∑ i ∈ s, E1 (f i) := by
+  simp only [E1, map_sum, Finset.mul_sum]
+
+/-- `(-p)^k / k!`. -/
+noncomputable def aa (p k : ℕ) : KK := (-(p : KK)) ^ k / (k.factorial : KK)
+
+lemma aa_rel {p : ℕ} (hp : p.Prime) (k : ℕ) :
+    aa p (k + 2) / (p : KK) ^ 2 * ((k + 2 : ℕ) : KK) = -(aa p (k + 1) / p) := by
+  have hpK := pKK_ne hp
+  simp only [aa, Nat.factorial_succ]
+  push_cast
+  have h1 : ((k + 1).factorial : KK) ≠ 0 := by exact_mod_cast (k + 1).factorial_ne_zero
+  have h2 : ((k : KK) + 1 + 1) ≠ 0 := by
+    have : ((k + 2 : ℕ) : KK) ≠ 0 := by exact_mod_cast (k + 1).succ_ne_zero
+    push_cast at this; rw [show (k : KK) + 1 + 1 = k + 2 by ring]; exact this
+  rw [Nat.factorial_succ] at h1; push_cast at h1
+  field_simp
+  ring
+
+section identity
+variable {p : ℕ} (hp : p.Prime) (h3 : ¬ 3 ∣ p) (κ Uc : KK) (u : PK) (hu1 : constantCoeff u = 1)
+
+/-- `R_j(w)`. -/
+noncomputable def RR (j : ℕ) : PK := (thk j Li2).subst (ww h3 κ u)
+
+noncomputable def H1 : PK := Li2.subst (ff κ u) - C (((p : KK) ^ 2)⁻¹) * Li2.subst (ww h3 κ u)
+  - C Uc * (thk 1 Li2).subst (ff κ u)
+
+noncomputable def H2 : PK := UU hp h3 u * (-(thk 1 Li2).subst (ff κ u)
+  + C ((p : KK)⁻¹) * (thk 1 Li2).subst (ww h3 κ u))
+
+noncomputable def H3 (N : ℕ) : PK := -∑ k ∈ Finset.range N,
+  C (aa p (k + 2) / (p : KK) ^ 2) * UU hp h3 u ^ (k + 2) * RR h3 κ u (k + 2)
+
+/-- The truncated Taylor sum. -/
+noncomputable def SS (N : ℕ) : PK :=
+  ∑ k ∈ Finset.range (N + 2), C (aa p k) * UU hp h3 u ^ k * RR h3 κ u (k + 1)
+
+/-- The pairing with the Taylor sum in place of `Li₁(w e^t)`. -/
+noncomputable def Ep' (N : ℕ) : PK :=
+  (C Uc + UU hp h3 u) * (-(ell u * (thk 2 Li2).subst (ff κ u)))
+  - (-(thk 1 Li2).subst (ff κ u) + C ((p : KK)⁻¹) * SS hp h3 κ u N) * (ell u - E1 (UU hp h3 u))
+
+include hp hu1
+
+lemma E1_Li2_ff : E1 (Li2.subst (ff κ u)) = ell u * (thk 1 Li2).subst (ff κ u) := by
+  rw [E1_subst' _ (const_ff κ u) (E1_ff κ u hu1), show thk 1 Li2 = E1 Li2 by
+    rw [thk_succ, thk_zero]]
+
+lemma E1_thk_ff (j : ℕ) : E1 ((thk j Li2).subst (ff κ u)) = ell u * (thk (j + 1) Li2).subst (ff κ u) := by
+  rw [E1_subst' _ (const_ff κ u) (E1_ff κ u hu1), thk_succ]
+
+lemma E1_Li2_ww : E1 (Li2.subst (ww h3 κ u)) = ((p : PK) * ell u) * RR h3 κ u 1 := by
+  rw [E1_subst' _ (const_ww h3 κ u hp.ne_zero) (E1_ww h3 κ u hu1), RR, show thk 1 Li2 = E1 Li2 by
+    rw [thk_succ, thk_zero]]
+
+lemma E1_RR (j : ℕ) : E1 (RR h3 κ u j) = ((p : PK) * ell u) * RR h3 κ u (j + 1) := by
+  rw [RR, RR, E1_subst' _ (const_ww h3 κ u hp.ne_zero) (E1_ww h3 κ u hu1), thk_succ]
+
+lemma E1_H3 (N : ℕ) : E1 (H3 hp h3 κ u N) =
+    ∑ k ∈ Finset.range N, C (aa p (k + 1) / p) * UU hp h3 u ^ (k + 1) * E1 (UU hp h3 u)
+      * RR h3 κ u (k + 2)
+    - C ((p : KK)⁻¹) * ell u * ∑ k ∈ Finset.range N,
+      C (aa p (k + 2)) * UU hp h3 u ^ (k + 2) * RR h3 κ u (k + 3) := by
+  have hpK := pKK_ne hp
+  rw [H3, E1_neg, E1_sum, Finset.mul_sum, ← Finset.sum_neg_distrib, ← Finset.sum_sub_distrib]
+  refine Finset.sum_congr rfl (fun k _ => ?_)
+  rw [E1_mul, E1_mul, E1_C, E1_pow, E1_RR hp h3 κ u hu1]
+  have e := aa_rel hp k
+  have e2 : C (aa p (k + 2) / (p : KK) ^ 2) * ((p : PK)) = C ((p : KK)⁻¹) * C (aa p (k + 2)) := by
+    rw [show ((p : PK)) = C (p : KK) by simp, ← map_mul, ← map_mul]; congr 1; field_simp
+  have e3 : C (aa p (k + 2) / (p : KK) ^ 2) * ((k + 2 : ℕ) : PK) = -C (aa p (k + 1) / p) := by
+    rw [← map_natCast C (k + 2), ← map_mul, e, map_neg]
+  rw [show k + 2 - 1 = k + 1 by omega, show k + 2 + 1 = k + 3 by omega]
+  linear_combination (-(UU hp h3 u ^ (k + 2) * ell u * RR h3 κ u (k + 3))) * e2
+    - (UU hp h3 u ^ (k + 1) * E1 (UU hp h3 u) * RR h3 κ u (k + 2)) * e3
+
+end identity
+
 end A094061
