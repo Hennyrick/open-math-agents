@@ -169,4 +169,83 @@ lemma taylor (A : PK) {w t : PK} (hw : constantCoeff w = 0) (ht : constantCoeff 
   rw [this]
   exact TQ.mul_left _ (TQ_subst _ hw K).symm
 
+/-! The dilogarithm family. -/
+
+/-- `Li₂ = ∑ X^n / n^2`. -/
+noncomputable def Li2 : PK := mk fun n => if n = 0 then 0 else ((n : KK) ^ 2)⁻¹
+
+lemma thk_add (j k : ℕ) (A : PK) : thk j (thk k A) = thk (j + k) A := by
+  ext n; simp [thk, pow_add]; ring
+
+lemma coeff_thk_Li2 (j n : ℕ) (hj : 2 ≤ j) :
+    coeff n (thk j Li2) = if n = 0 then 0 else ((n ^ (j - 2) : ℕ) : KK) := by
+  rcases n with _ | n
+  · simp [thk, Li2]
+  · simp only [thk, Li2, coeff_mk, Nat.succ_ne_zero, if_false]
+    have h : ((n + 1 : ℕ) : KK) ≠ 0 := by exact_mod_cast n.succ_ne_zero
+    obtain ⟨i, rfl⟩ : ∃ i, j = i + 2 := ⟨j - 2, by omega⟩
+    simp only [Nat.add_sub_cancel]
+    push_cast at h ⊢
+    rw [pow_add]; field_simp
+
+lemma coeff_thk1_Li2 (n : ℕ) :
+    coeff n (thk 1 Li2) = if n = 0 then 0 else ((n : KK))⁻¹ := by
+  rcases n with _ | n
+  · simp [thk, Li2]
+  · simp only [thk, Li2, coeff_mk, Nat.succ_ne_zero, if_false, pow_one]
+    have h : ((n + 1 : ℕ) : KK) ≠ 0 := by exact_mod_cast n.succ_ne_zero
+    field_simp
+
+lemma G_mul : thk 2 Li2 * (1 - X) = X := by
+  ext n
+  rw [mul_sub, mul_one, map_sub]
+  rcases n with _ | n
+  · rw [coeff_zero_mul_X, coeff_thk_Li2 2 0 le_rfl]; simp
+  · rw [coeff_succ_mul_X, coeff_thk_Li2 2 _ le_rfl, coeff_thk_Li2 2 _ le_rfl, coeff_X]
+    rcases n with _ | n <;> simp
+
+lemma OIs_thk_Li2 {p : ℕ} (hp : p.Prime) (j : ℕ) (hj : 2 ≤ j) : OIs p (thk j Li2) := fun n => by
+  rw [coeff_thk_Li2 j n hj]; split_ifs
+  · exact OI_zero hp
+  · exact OI_nat hp _
+
+/-- Series determined by all truncations. -/
+lemma eq_of_TQ {f g : PK} (h : ∀ K, TQ K f g) : f = g := by
+  ext n; exact TQ_coeff (h n) le_rfl
+
+/-- Coefficients fixed by `σ` (e.g. rational). -/
+def SigFix (p : ℕ) (h3 : ¬ 3 ∣ p) (A : PK) : Prop := ∀ n, sig p h3 (coeff n A) = coeff n A
+
+lemma SigFix_thk_Li2 {p : ℕ} (h3 : ¬ 3 ∣ p) (j : ℕ) : SigFix p h3 (thk j Li2) := fun n => by
+  have : coeff n (thk j Li2) = rr ((n : ℚ) ^ j * (if n = 0 then 0 else ((n : ℚ) ^ 2)⁻¹)) := by
+    simp [thk, Li2, rr]; split_ifs <;> simp
+  rw [this, sig_rr]
+
+section phisub
+variable {p : ℕ} (hp : p.Prime) (h3 : ¬ 3 ∣ p)
+include hp
+
+lemma phi1_TQ {K : ℕ} {f g : PK} (h : TQ K f g) :
+    TQ K (phi1 p hp.ne_zero h3 f) (phi1 p hp.ne_zero h3 g) := by
+  obtain ⟨q, hq⟩ := h
+  refine ⟨X ^ ((p - 1) * (K + 1)) * phi1 p hp.ne_zero h3 q, ?_⟩
+  rw [← map_sub, hq, map_mul, map_pow, phi1_X hp h3, ← pow_mul, ← mul_assoc, ← pow_add]
+  congr 2
+  have := hp.one_lt; rw [Nat.sub_mul, one_mul]; zify [show K + 1 ≤ p * (K + 1) by nlinarith]; ring
+
+lemma phi1_subst {A : PK} (hA : SigFix p h3 A) {g : PK} (hg : constantCoeff g = 0) :
+    phi1 p hp.ne_zero h3 (A.subst g) = A.subst (phi1 p hp.ne_zero h3 g) := by
+  have hφg : constantCoeff (phi1 p hp.ne_zero h3 g) = 0 := by rw [const_phi1, hg, map_zero]
+  apply eq_of_TQ
+  intro K
+  refine (phi1_TQ hp h3 (TQ_subst A hg K)).trans ?_
+  refine TQ.trans ?_ (TQ_subst A hφg K).symm
+  rw [map_sum]
+  apply TQ.sum
+  intro d _
+  rw [map_mul, map_pow, phi1_C hp h3, hA d]
+  exact TQ.refl _ _
+
+end phisub
+
 end A094061
