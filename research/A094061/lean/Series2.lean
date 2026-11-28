@@ -294,4 +294,133 @@ lemma logS_Phi {p : ℕ} (hp : p ≠ 0) {F : PS} (hF : constantCoeff F ≠ 0) :
   · rw [D_logS 1 h1, D_Phi, D_logS 1 hF, ld, ld, map_mul, D_Phi, Phi_inv hp hF, smul_mul_assoc]
   · rw [const_logS, const_Phi, const_logS]
 
+/-! Order (vanishing of low-degree coefficients) and the exponential. -/
+
+/-- Total degree of a bidegree. -/
+def deg (d : Fin 2 →₀ ℕ) : ℕ := d 0 + d 1
+
+lemma deg_add (a b : Fin 2 →₀ ℕ) : deg (a + b) = deg a + deg b := by
+  simp [deg]; ring
+
+lemma eq_zero_of_deg (d : Fin 2 →₀ ℕ) (h : deg d = 0) : d = 0 := by
+  simp only [deg] at h
+  ext j; fin_cases j <;> simp <;> omega
+
+/-- All coefficients of total degree below `k` vanish. -/
+def Van (k : ℕ) (F : PS) : Prop := ∀ d, deg d < k → coeff d F = 0
+
+lemma Van_mul {a b : ℕ} {F G : PS} (hF : Van a F) (hG : Van b G) : Van (a + b) (F * G) := by
+  intro d hd
+  rw [coeff_mul]
+  apply Finset.sum_eq_zero
+  intro x hx
+  rw [Finset.HasAntidiagonal.mem_antidiagonal] at hx
+  have := deg_add x.1 x.2
+  rw [hx] at this
+  by_cases h1 : deg x.1 < a
+  · rw [hF _ h1, zero_mul]
+  · rw [hG _ (by omega), mul_zero]
+
+lemma Van_one_of_const {G : PS} (hG : constantCoeff G = 0) : Van 1 G := by
+  intro d hd
+  have : d = 0 := eq_zero_of_deg d (by omega)
+  subst this; simpa [coeff_zero_eq_constantCoeff_apply] using hG
+
+lemma Van_zero (F : PS) : Van 0 F := fun d hd => absurd hd (Nat.not_lt_zero _)
+
+lemma Van_pow {G : PS} (hG : constantCoeff G = 0) (j : ℕ) : Van j (G ^ j) := by
+  induction j with
+  | zero => exact Van_zero _
+  | succ j ih => rw [pow_succ]; exact Van_mul ih (Van_one_of_const hG)
+
+/-- Exponential of a series with zero constant term, coefficientwise a finite sum. -/
+noncomputable def expS (G : PS) : PS := fun d =>
+  ∑ j ∈ Finset.range (deg d + 1), coeff d (G ^ j) / (j.factorial : ℚ)
+
+lemma coeff_expS {G : PS} (hG : constantCoeff G = 0) (d : Fin 2 →₀ ℕ) {M : ℕ} (hM : deg d ≤ M) :
+    coeff d (expS G) = ∑ j ∈ Finset.range (M + 1), coeff d (G ^ j) / (j.factorial : ℚ) := by
+  show (∑ j ∈ Finset.range (deg d + 1), coeff d (G ^ j) / (j.factorial : ℚ)) = _
+  apply Finset.sum_subset
+  · intro j hj; simp at hj ⊢; omega
+  · intro j _ hj
+    simp at hj
+    rw [Van_pow hG j d (by omega), zero_div]
+
+lemma const_expS (G : PS) : constantCoeff (expS G) = 1 := by
+  rw [← coeff_zero_eq_constantCoeff_apply]
+  show (∑ j ∈ Finset.range (deg 0 + 1), coeff 0 (G ^ j) / (j.factorial : ℚ)) = 1
+  simp [deg]
+
+lemma D_expS (i : Fin 2) {G : PS} (hG : constantCoeff G = 0) : D i (expS G) = D i G * expS G := by
+  ext d
+  set N := deg d with hN
+  rw [coeff_D, coeff_expS hG d (le_refl N), Finset.mul_sum, coeff_mul]
+  -- right side
+  have hR : ∑ x ∈ Finset.HasAntidiagonal.antidiagonal d, coeff x.1 (D i G) * coeff x.2 (expS G) =
+      ∑ j ∈ Finset.range (N + 1), coeff d (D i G * G ^ j) / (j.factorial : ℚ) := by
+    have : ∀ x ∈ Finset.HasAntidiagonal.antidiagonal d, coeff x.1 (D i G) * coeff x.2 (expS G) =
+        ∑ j ∈ Finset.range (N + 1), coeff x.1 (D i G) * coeff x.2 (G ^ j) / (j.factorial : ℚ) := by
+      intro x hx
+      rw [Finset.HasAntidiagonal.mem_antidiagonal] at hx
+      have hle : deg x.2 ≤ N := by rw [hN, ← hx, deg_add]; omega
+      rw [coeff_expS hG x.2 hle, Finset.mul_sum]
+      refine Finset.sum_congr rfl (fun j _ => by ring)
+    rw [Finset.sum_congr rfl this, Finset.sum_comm]
+    refine Finset.sum_congr rfl (fun j _ => ?_)
+    rw [coeff_mul, Finset.sum_div]
+  rw [hR]
+  have hDG : constantCoeff (D i G) = 0 := coeff_zero_D i G
+  -- last term vanishes
+  rw [Finset.sum_range_succ (fun j => coeff d (D i G * G ^ j) / (j.factorial : ℚ))]
+  have hlast : coeff d (D i G * G ^ N) = 0 := by
+    have := Van_mul (Van_one_of_const hDG) (Van_pow hG N) d (by omega)
+    exact this
+  rw [hlast, zero_div, add_zero]
+  rw [Finset.sum_range_succ']
+  simp only [pow_zero, Nat.factorial_zero, Nat.cast_one, div_one]
+  have h0 : (d i : ℚ) * coeff d (1 : PS) = 0 := by
+    have : coeff d (D i (1 : PS)) = 0 := by rw [D_one]; simp
+    rw [coeff_D] at this; exact this
+  rw [h0, add_zero]
+  refine Finset.sum_congr rfl (fun j _ => ?_)
+  have hp : D i (G ^ (j + 1)) = ((j + 1 : ℕ) : PS) * G ^ j * D i G := by
+    rw [D_pow]; simp
+  have hc : (d i : ℚ) * coeff d (G ^ (j + 1)) = ((j + 1 : ℕ) : ℚ) * coeff d (D i G * G ^ j) := by
+    rw [← coeff_D, hp, mul_comm ((j + 1 : ℕ) : PS), mul_comm (G ^ j), mul_assoc,
+      ← map_natCast (C (σ := Fin 2) (R := ℚ)), coeff_C_mul]
+    ring_nf
+  rw [mul_div_assoc', hc, Nat.factorial_succ]
+  push_cast
+  field_simp
+
+lemma logS_expS {G : PS} (hG : constantCoeff G = 0) : logS (expS G) = G := by
+  have h1 : constantCoeff (expS G) ≠ 0 := by rw [const_expS]; norm_num
+  apply eq_of_D_eq
+  · rw [D_logS 0 h1, ld, D_expS 0 hG, mul_assoc, MvPowerSeries.mul_inv_cancel _ h1, mul_one]
+  · rw [D_logS 1 h1, ld, D_expS 1 hG, mul_assoc, MvPowerSeries.mul_inv_cancel _ h1, mul_one]
+  · rw [const_logS, hG]
+
+/-- A series is determined by its logarithm and its constant term. -/
+lemma eq_of_logS_eq {Z W : PS} (hZ : constantCoeff Z ≠ 0) (hW : constantCoeff W ≠ 0)
+    (hl : logS Z = logS W) (hc : constantCoeff Z = constantCoeff W) : Z = W := by
+  have hDi : ∀ i, D i (Z * W⁻¹) = 0 := by
+    intro i
+    have e := congrArg (D i) hl
+    rw [D_logS i hZ, D_logS i hW, ld, ld] at e
+    have eZ : D i Z = D i W * W⁻¹ * Z := by
+      have := congrArg (· * Z) e
+      simp only [mul_assoc, MvPowerSeries.inv_mul_cancel Z hZ, mul_one] at this
+      rw [this]; ring
+    rw [D_mul, D_inv i hW, eZ]; ring
+  have hQ : Z * W⁻¹ = 1 := by
+    have : Z * W⁻¹ = C (constantCoeff (Z * W⁻¹)) := by
+      apply eq_of_D_eq
+      · rw [hDi 0, D_C]
+      · rw [hDi 1, D_C]
+      · simp
+    rw [this, map_mul, MvPowerSeries.constantCoeff_inv, hc, mul_inv_cancel₀ hW, map_one]
+  have := congrArg (· * W) hQ
+  simp only [mul_assoc, MvPowerSeries.inv_mul_cancel W hW, mul_one, one_mul] at this
+  exact this
+
 end A094061
