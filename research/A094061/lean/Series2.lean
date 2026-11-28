@@ -216,4 +216,82 @@ lemma D_logS (i : Fin 2) {F : PS} (hF : constantCoeff F ≠ 0) : D i (logS F) = 
       field_simp
       linear_combination hc
 
+lemma cancel_right {X Y H : PS} (hH : constantCoeff H ≠ 0) (h : X * H = Y * H) : X = Y := by
+  have := congrArg (· * H⁻¹) h
+  simp only [mul_assoc, MvPowerSeries.mul_inv_cancel H hH, mul_one] at this
+  exact this
+
+lemma ld_mul (i : Fin 2) {F G : PS} (hF : constantCoeff F ≠ 0) (hG : constantCoeff G ≠ 0) :
+    ld i (F * G) = ld i F + ld i G := by
+  have hFG : constantCoeff (F * G) ≠ 0 := by rw [map_mul]; exact mul_ne_zero hF hG
+  apply cancel_right hFG
+  simp only [ld, D_mul]
+  have e1 : (F * D i G + G * D i F) * (F * G)⁻¹ * (F * G) = F * D i G + G * D i F := by
+    rw [mul_assoc, MvPowerSeries.inv_mul_cancel _ hFG, mul_one]
+  rw [e1]
+  have e2 : (D i F * F⁻¹ + D i G * G⁻¹) * (F * G) =
+      D i F * G * (F⁻¹ * F) + D i G * F * (G⁻¹ * G) := by ring
+  rw [e2, MvPowerSeries.inv_mul_cancel _ hF, MvPowerSeries.inv_mul_cancel _ hG]; ring
+
+lemma logS_mul {F G : PS} (hF : constantCoeff F ≠ 0) (hG : constantCoeff G ≠ 0) :
+    logS (F * G) = logS F + logS G := by
+  have hFG : constantCoeff (F * G) ≠ 0 := by rw [map_mul]; exact mul_ne_zero hF hG
+  apply eq_of_D_eq
+  · rw [D_add, D_logS 0 hFG, D_logS 0 hF, D_logS 0 hG, ld_mul 0 hF hG]
+  · rw [D_add, D_logS 1 hFG, D_logS 1 hF, D_logS 1 hG, ld_mul 1 hF hG]
+  · simp [const_logS]
+
+lemma D_one (i : Fin 2) : D i (1 : PS) = 0 := by simpa using D_C i 1
+
+lemma logS_one : logS (1 : PS) = 0 := by
+  ext d
+  rw [coeff_logS]
+  simp [ld, D_one]
+
+lemma logS_pow {F : PS} (hF : constantCoeff F ≠ 0) (n : ℕ) : logS (F ^ n) = (n : ℚ) • logS F := by
+  induction n with
+  | zero => simp [logS_one]
+  | succ n ih =>
+    have hFn : constantCoeff (F ^ n) ≠ 0 := by rw [map_pow]; exact pow_ne_zero _ hF
+    rw [pow_succ, logS_mul hFn hF, ih]; push_cast; rw [add_smul, one_smul]
+
+/-! Frobenius `x ↦ x^p, y ↦ y^p`. -/
+
+noncomputable def Phi (p : ℕ) (hp : p ≠ 0) : PS →ₐ[ℚ] PS := MvPowerSeries.expand p hp
+
+lemma exists_smul_of_dvd {p : ℕ} (d : Fin 2 →₀ ℕ) (h : ∀ j, p ∣ d j) :
+    ∃ m : Fin 2 →₀ ℕ, d = p • m := by
+  refine ⟨Finsupp.mapRange (fun a => a / p) (by simp) d, ?_⟩
+  ext j
+  simp only [Finsupp.smul_apply, Finsupp.mapRange_apply, smul_eq_mul]
+  exact (Nat.mul_div_cancel' (h j)).symm
+
+lemma D_Phi (i : Fin 2) {p : ℕ} (hp : p ≠ 0) (F : PS) :
+    D i (Phi p hp F) = (p : ℚ) • Phi p hp (D i F) := by
+  ext d
+  rw [coeff_D, coeff_smul]
+  by_cases h : ∀ j, p ∣ d j
+  · obtain ⟨m, rfl⟩ := exists_smul_of_dvd d h
+    simp only [Phi, coeff_expand_smul, coeff_D, Finsupp.smul_apply, smul_eq_mul]
+    push_cast; ring
+  · push Not at h
+    obtain ⟨j, hj⟩ := h
+    simp only [Phi, coeff_expand_of_not_dvd p hp _ hj]; ring
+
+lemma const_Phi {p : ℕ} (hp : p ≠ 0) (F : PS) : constantCoeff (Phi p hp F) = constantCoeff F := by
+  simp [Phi, constantCoeff_expand]
+
+lemma Phi_inv {p : ℕ} (hp : p ≠ 0) {F : PS} (hF : constantCoeff F ≠ 0) :
+    Phi p hp F⁻¹ = (Phi p hp F)⁻¹ := by
+  have h1 : constantCoeff (Phi p hp F) ≠ 0 := by rw [const_Phi]; exact hF
+  rw [MvPowerSeries.eq_inv_iff_mul_eq_one h1, ← map_mul, MvPowerSeries.inv_mul_cancel _ hF, map_one]
+
+lemma logS_Phi {p : ℕ} (hp : p ≠ 0) {F : PS} (hF : constantCoeff F ≠ 0) :
+    logS (Phi p hp F) = Phi p hp (logS F) := by
+  have h1 : constantCoeff (Phi p hp F) ≠ 0 := by rw [const_Phi]; exact hF
+  apply eq_of_D_eq
+  · rw [D_logS 0 h1, D_Phi, D_logS 0 hF, ld, ld, map_mul, D_Phi, Phi_inv hp hF, smul_mul_assoc]
+  · rw [D_logS 1 h1, D_Phi, D_logS 1 hF, ld, ld, map_mul, D_Phi, Phi_inv hp hF, smul_mul_assoc]
+  · rw [const_logS, const_Phi, const_logS]
+
 end A094061
