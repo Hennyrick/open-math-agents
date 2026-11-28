@@ -191,4 +191,184 @@ lemma coeff_subst_range (A : PK) {g : PK} (hg : constantCoeff g = 0) (n : ℕ) :
     rw [coeff_pow_zero_of_lt hg (by omega), smul_zero]
 
 
+/-! Integrality of one-variable series. -/
+
+/-- All coefficients integral. -/
+def OIs (p : ℕ) (f : PK) : Prop := ∀ n, OI p (coeff n f)
+
+/-- Generic binomial identity for a prime exponent. -/
+lemma add_pow_prime_sub {R : Type*} [CommRing R] (q : ℕ) (hp : (q + 1).Prime) (A B : R) :
+    (A + B) ^ (q + 1) - A ^ (q + 1) - B ^ (q + 1) = ((q + 1 : ℕ) : R) *
+      ∑ k ∈ Finset.range q, A ^ (k + 1) * B ^ (q + 1 - (k + 1)) *
+        (((q + 1).choose (k + 1) / (q + 1) : ℕ) : R) := by
+  rw [add_pow, Finset.sum_range_succ, Finset.sum_range_succ']
+  simp only [Nat.choose_self, Nat.cast_one, mul_one, Nat.sub_self, pow_zero, Nat.choose_zero_right,
+    one_mul, Nat.sub_zero]
+  rw [Finset.mul_sum]
+  have e : ∀ k ∈ Finset.range q, A ^ (k + 1) * B ^ (q + 1 - (k + 1)) * ((q + 1).choose (k + 1) : R)
+      = ((q + 1 : ℕ) : R) * (A ^ (k + 1) * B ^ (q + 1 - (k + 1)) *
+        (((q + 1).choose (k + 1) / (q + 1) : ℕ) : R)) := by
+    intro k hk
+    obtain ⟨t, ht⟩ : (q + 1) ∣ (q + 1).choose (k + 1) :=
+      hp.dvd_choose_self (by omega) (by simp at hk; omega)
+    rw [ht, Nat.mul_div_cancel_left t (Nat.succ_pos q)]; push_cast; ring
+  rw [Finset.sum_congr rfl e]; ring
+
+section integ
+variable {p : ℕ} (hp : p.Prime)
+include hp
+
+lemma OIs_add {f g : PK} (hf : OIs p f) (hg : OIs p g) : OIs p (f + g) := fun n => by
+  rw [map_add]; exact OI_add hp (hf n) (hg n)
+
+lemma OIs_sub {f g : PK} (hf : OIs p f) (hg : OIs p g) : OIs p (f - g) := fun n => by
+  rw [map_sub]; exact OI_sub hp (hf n) (hg n)
+
+lemma OIs_neg {f : PK} (hf : OIs p f) : OIs p (-f) := fun n => by
+  rw [map_neg]; exact OI_neg hp (hf n)
+
+lemma OIs_mul {f g : PK} (hf : OIs p f) (hg : OIs p g) : OIs p (f * g) := fun n => by
+  rw [coeff_mul]; exact OI_sum hp _ _ (fun x _ => OI_mul hp (hf _) (hg _))
+
+lemma OIs_C {c : KK} (hc : OI p c) : OIs p (C c) := fun n => by
+  rw [coeff_C]; split_ifs
+  · exact hc
+  · exact OI_zero hp
+
+lemma OIs_one : OIs p (1 : PK) := by simpa using OIs_C hp (OI_one hp)
+
+lemma OIs_X : OIs p (X : PK) := fun n => by
+  rw [coeff_X]; split_ifs
+  · exact OI_one hp
+  · exact OI_zero hp
+
+lemma OIs_pow {f : PK} (hf : OIs p f) (k : ℕ) : OIs p (f ^ k) := by
+  induction k with
+  | zero => simpa using OIs_one hp
+  | succ k ih => rw [pow_succ]; exact OIs_mul hp ih hf
+
+lemma OIs_smul {c : KK} (hc : OI p c) {f : PK} (hf : OIs p f) : OIs p (c • f) := fun n => by
+  rw [coeff_smul, smul_eq_mul]; exact OI_mul hp hc (hf n)
+
+lemma OIs_nat (k : ℕ) : OIs p (k : PK) := by
+  rw [show (k : PK) = C (k : KK) by simp]; exact OIs_C hp (OI_nat hp k)
+
+lemma OIs_E1 {f : PK} (hf : OIs p f) : OIs p (E1 f) := fun n => by
+  rw [coeff_E1]; exact OI_mul hp (OI_nat hp n) (hf n)
+
+lemma OIs_sum {ι : Type*} (s : Finset ι) (f : ι → PK) (h : ∀ i ∈ s, OIs p (f i)) :
+    OIs p (∑ i ∈ s, f i) := fun n => by
+  rw [map_sum]; exact OI_sum hp _ _ (fun i hi => h i hi n)
+
+lemma OIs_subst {A g : PK} (hA : OIs p A) (hg0 : constantCoeff g = 0) (hg : OIs p g) :
+    OIs p (A.subst g) := fun n => by
+  rw [coeff_subst_range A hg0]
+  exact OI_sum hp _ _ (fun d _ => OI_mul hp (hA d) (OIs_pow hp hg d n))
+
+lemma OIs_inv {f : PK} (hf1 : constantCoeff f = 1) (hf : OIs p f) : OIs p f⁻¹ := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+    rw [PowerSeries.coeff_inv, hf1, inv_one]
+    split_ifs
+    · exact OI_one hp
+    · refine OI_mul hp (OI_neg hp (OI_one hp)) (OI_sum hp _ _ (fun x _ => ?_))
+      split_ifs with h
+      · exact OI_mul hp (hf _) (ih _ h)
+      · exact OI_zero hp
+
+lemma OIs_phi1 (h3 : ¬ 3 ∣ p) {f : PK} (hf : OIs p f) : OIs p (phi1 p hp.ne_zero h3 f) := fun n => by
+  rw [coeff_phi1]; split_ifs
+  · exact OI_sig hp h3 (hf _)
+  · exact OI_zero hp
+
+end integ
+
+/-- `p^(d-1)/d` is `p`-integral. -/
+lemma pint_ppow_div {p : ℕ} (hp : p.Prime) {d : ℕ} (hd : 1 ≤ d) :
+    pint p ((p : ℚ) ^ (d - 1) / d) := by
+  have hfac : d = p ^ (d.factorization p) * ordCompl[p] d := (Nat.ordProj_mul_ordCompl_eq_self d p).symm
+  have hu : ¬ p ∣ ordCompl[p] d := Nat.not_dvd_ordCompl hp (by omega)
+  set v := d.factorization p
+  set u := ordCompl[p] d
+  have hv : v ≤ d - 1 := by
+    have h1 : p ^ v ≤ d := Nat.ordProj_le p (by omega)
+    have h2 : v < p ^ v := Nat.lt_pow_self hp.one_lt
+    omega
+  have hu0 : (u : ℚ) ≠ 0 := by
+    have : u ≠ 0 := by rintro h; rw [h] at hu; exact hu (dvd_zero p)
+    exact_mod_cast this
+  have hp0 : (p : ℚ) ≠ 0 := by exact_mod_cast hp.ne_zero
+  have e : (p : ℚ) ^ (d - 1) / d = ((p ^ (d - 1 - v) : ℕ) : ℚ) * (u : ℚ)⁻¹ := by
+    rw [show (d : ℚ) = (p : ℚ) ^ v * u by exact_mod_cast hfac]
+    push_cast
+    have : (p : ℚ) ^ (d - 1) = (p : ℚ) ^ (d - 1 - v) * (p : ℚ) ^ v := by
+      rw [← pow_add, Nat.sub_add_cancel hv]
+    rw [this]; field_simp
+  rw [e]; exact pint_mul hp (pint_nat hp _) (pint_inv_nat hp hu)
+
+section frobS
+variable {p : ℕ} (hp : p.Prime) (h3 : ¬ 3 ∣ p)
+include hp
+
+lemma phi1_X : phi1 p hp.ne_zero h3 X = X ^ p := by simp [phi1]
+
+lemma phi1_C (c : KK) : phi1 p hp.ne_zero h3 (C c) = C (sig p h3 c) := by
+  simp [phi1, PowerSeries.expand_C]
+
+lemma pKK_ne : (p : KK) ≠ 0 := by
+  have : (p : ℚ) ≠ 0 := by exact_mod_cast hp.ne_zero
+  simpa [rr] using (map_ne_zero (algebraMap ℚ KK)).2 this
+
+/-- Frobenius congruence for series: `f^p ≡ φ(f) mod p`. -/
+lemma frob_series : ∀ n, ∀ f : PK, OIs p f →
+    OI p (coeff n ((p : KK)⁻¹ • (f ^ p - phi1 p hp.ne_zero h3 f))) := by
+  intro n
+  induction n using Nat.strong_induction_on with
+  | _ n ih =>
+  intro f hf
+  obtain ⟨q, hq⟩ : ∃ q, p = q + 1 := ⟨p - 1, (Nat.sub_add_cancel hp.one_lt.le).symm⟩
+  set c := constantCoeff f
+  set g : PK := mk fun k => coeff (k + 1) f
+  have hfg : f = X * g + C c := eq_X_mul_shift_add_const f
+  have hg : OIs p g := fun k => by simp only [g, coeff_mk]; exact hf (k + 1)
+  have hc : OI p c := by simpa [c, coeff_zero_eq_constantCoeff_apply] using hf 0
+  have hqp : (q + 1).Prime := hq ▸ hp
+  set S := ∑ k ∈ Finset.range q, (X * g) ^ (k + 1) * (C c) ^ (q + 1 - (k + 1)) *
+    (((q + 1).choose (k + 1) / (q + 1) : ℕ) : PK)
+  have hb := add_pow_prime_sub q hqp (X * g) (C c)
+  have hS : OIs p S := OIs_sum hp _ _ (fun k _ => OIs_mul hp (OIs_mul hp
+    (OIs_pow hp (OIs_mul hp (OIs_X hp) hg) _) (OIs_pow hp (OIs_C hp hc) _)) (OIs_nat hp _))
+  have hpK := pKK_ne hp
+  have key : (p : KK)⁻¹ • (f ^ p - phi1 p hp.ne_zero h3 f) =
+      S + C ((c ^ p - sig p h3 c) / p) + X ^ p * ((p : KK)⁻¹ • (g ^ p - phi1 p hp.ne_zero h3 g)) := by
+    have hphi : phi1 p hp.ne_zero h3 f = X ^ p * phi1 p hp.ne_zero h3 g + C (sig p h3 c) := by
+      rw [hfg, map_add, map_mul, phi1_X hp h3, phi1_C hp h3]
+    rw [hphi]
+    conv_lhs => rw [hfg]
+    have hb' : (X * g + C c) ^ p = (X * g) ^ p + (C c) ^ p + (p : PK) * S := by
+      rw [hq]; rw [← hb]; ring
+    rw [hb', mul_pow, ← map_pow]
+    rw [show ((p : PK)) = C (p : KK) by simp]
+    simp only [smul_sub, smul_add, mul_smul_comm]
+    rw [show (p : KK)⁻¹ • (C (p : KK) * S) = S by
+      rw [smul_eq_C_mul, ← mul_assoc, ← map_mul, inv_mul_cancel₀ hpK, map_one, one_mul]]
+    rw [show C ((c ^ p - sig p h3 c) / p) = (p : KK)⁻¹ • (C (c ^ p) - C (sig p h3 c)) by
+      rw [smul_eq_C_mul, ← map_sub, ← map_mul]; congr 1; field_simp]
+    simp only [smul_sub, smul_eq_C_mul]
+    ring
+  rw [key, map_add, map_add]
+  refine OI_add hp (OI_add hp (hS n) ?_) ?_
+  · rw [coeff_C]; split_ifs
+    · have := OI_neg hp (frob_cong hp h3 hc)
+      rw [show -((sig p h3 c - c ^ p) / p) = (c ^ p - sig p h3 c) / p by ring] at this
+      exact this
+    · exact OI_zero hp
+  · rw [coeff_X_pow_mul']
+    split_ifs with hle
+    · exact ih (n - p) (by have := hp.one_lt; omega) g hg
+    · exact OI_zero hp
+
+end frobS
+
 end A094061
