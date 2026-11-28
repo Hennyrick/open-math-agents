@@ -80,3 +80,21 @@ exactly at multiples of p (`hkappa.py`).
   missing relation. Searches with 339 Steinberg pairs, rational constants included, did not find it.
   The obstruction behaves like the Bloch-group class [-w] of a sixth root of unity, which rational
   origin-normalised relations cannot produce. Abandoned.
+
+## Streamlined core (used in Lean)
+Put g = m(z) - m0, so g = kappa0 z w0 with w0(0) = 1 and kappa0 = -2 sqrt(-3)/9. For each finite special point
+alpha other than m0, set u_alpha = 1 - s_alpha g with s_alpha = 1/(alpha - m0). Then:
+- z = (g/kappa0) / (u_0 u_r), where r = sqrt(-3); the zero of X at infinity is accounted for automatically.
+- Y = w^2 prod_b u_b^{n_b}.
+- Tangential pairs: f_b = s_b g, with 1 - f_b = u_b; and f_ab = (s_b - s_a) g / u_a, with 1 - f_ab = u_b/u_a.
+
+Eliminating the E-terms gives
+U(Y) = sum_b n_b lambda_b U(c_0b c_rb / c_b) - lambda_0 U(prod_b c_0b^{n_b}) - lambda_r U(prod_b c_rb^{n_b})
+modulo DR, where c_b = s_b kappa0 and c_ab = (s_b - s_a) kappa0. All three constant arguments are cube roots of
+unity (`consts.py`).
+
+Constants: no p-adic logarithm is needed. For kappa in O^x put rho = sigma(kappa)/kappa^p and
+U_s(kappa) = (1 - rho^{p^s}) / p^{s+1}. Then:
+- (1-rho^m)/(pm) = U_s(kappa) mod p^{1+v(m)} for v(m) <= s;
+- U_s is additive modulo p^{s+1}, and U_s(zeta) = 0 for roots of unity.
+The proofs are elementary binomial estimates. Taking s large for each target coefficient suffices.
