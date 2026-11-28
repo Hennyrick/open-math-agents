@@ -371,4 +371,93 @@ lemma frob_series : ∀ n, ∀ f : PK, OIs p f →
 
 end frobS
 
+/-! The logarithm series and Dwork-type integrality of `U`. -/
+
+/-- `log(1 + X) = ∑ (-1)^(k+1) X^k / k`. -/
+noncomputable def Lser : PK := mk fun k => if k = 0 then 0 else (-1 : KK) ^ (k + 1) / k
+
+lemma Lser_deriv_mul : d⁄dX KK Lser * (1 + X) = 1 := by
+  ext n
+  rw [mul_add, mul_one, map_add]
+  rcases n with _ | n
+  · rw [coeff_zero_mul_X, coeff_derivative]; simp [Lser, coeff_one]
+  · rw [coeff_succ_mul_X, coeff_derivative, coeff_derivative]
+    simp only [Lser, coeff_mk, coeff_one]
+    simp only [Nat.succ_ne_zero, if_false, add_eq_zero, one_ne_zero, and_false]
+    have h1 : ((n + 1 : ℕ) : KK) ≠ 0 := by exact_mod_cast n.succ_ne_zero
+    have h2 : ((n + 1 + 1 : ℕ) : KK) ≠ 0 := by exact_mod_cast (n + 1).succ_ne_zero
+    push_cast at h1 h2 ⊢
+    field_simp
+    ring
+
+lemma lg_one_add {y : PK} (hy : constantCoeff y = 0) : lg (1 + y) = Lser.subst y := by
+  have hs : HasSubst y := HasSubst.of_constantCoeff_zero' hy
+  have h1y : constantCoeff (1 + y) ≠ 0 := by simp [hy]
+  have e1 : (1 : PK).subst y = 1 := by
+    rw [show (1 : PK) = C 1 from (map_one C).symm, subst_C]; exact map_one _
+  have hinv : (d⁄dX KK Lser).subst y = (1 + y)⁻¹ := by
+    have := congrArg (PowerSeries.subst y) Lser_deriv_mul
+    rw [subst_mul hs, subst_add hs, subst_X hs, e1] at this
+    rw [PowerSeries.eq_inv_iff_mul_eq_one h1y]
+    exact this
+  apply eq_of_E1_eq
+  · rw [E1_lg, ld1, E1, E1, derivative_subst hs, hinv, map_add, derivative_one, zero_add]
+    ring
+  · rw [const_lg, ← coeff_zero_eq_constantCoeff_apply, coeff_subst_range _ hy]
+    simp [Lser]
+
+section dwork
+variable {p : ℕ} (hp : p.Prime) (h3 : ¬ 3 ∣ p)
+include hp
+
+/-- `U(u) = log u - p⁻¹ φ(log u)`. -/
+noncomputable def UU (u : PK) : PK := lg u - (p : KK)⁻¹ • phi1 p hp.ne_zero h3 (lg u)
+
+lemma const_UU (u : PK) : constantCoeff (UU hp h3 u) = 0 := by
+  simp [UU, const_lg, const_phi1]
+
+lemma OIs_UU {u : PK} (hu1 : constantCoeff u = 1) (hu : OIs p u) : OIs p (UU hp h3 u) := by
+  have hpK := pKK_ne hp
+  set φu := phi1 p hp.ne_zero h3 u with hφu
+  have hφ1 : constantCoeff φu = 1 := by rw [hφu, const_phi1, hu1, map_one]
+  have hφi : OIs p φu⁻¹ := OIs_inv hp hφ1 (OIs_phi1 hp h3 hu)
+  set w := ((p : KK)⁻¹ • (u ^ p - φu)) * φu⁻¹ with hw
+  have hwi : OIs p w := OIs_mul hp (fun n => frob_series hp h3 n u hu) hφi
+  have hw0 : constantCoeff w = 0 := by
+    rw [hw, map_mul, smul_eq_C_mul, map_mul, map_sub, map_pow, hu1, hφ1]; simp
+  have hu0 : constantCoeff u ≠ 0 := by rw [hu1]; exact one_ne_zero
+  have hφ0 : constantCoeff φu ≠ 0 := by rw [hφ1]; exact one_ne_zero
+  have e1 : u ^ p * φu⁻¹ = 1 + (p : KK) • w := by
+    rw [hw, smul_mul_assoc, smul_smul, mul_inv_cancel₀ hpK, one_smul, sub_mul,
+      PowerSeries.mul_inv_cancel _ hφ0]; ring
+  have e2 : UU hp h3 u = (p : KK)⁻¹ • lg (1 + (p : KK) • w) := by
+    rw [← e1, lg_mul (by rw [map_pow]; exact pow_ne_zero _ hu0)
+      (by rw [PowerSeries.constantCoeff_inv]; exact inv_ne_zero hφ0),
+      lg_inv hφ0, lg_pow hu0, hφu, lg_phi1 p hp.ne_zero h3 hu0, UU, smul_add, smul_smul,
+      inv_mul_cancel₀ hpK, one_smul, smul_neg, sub_eq_add_neg]
+  have hy0 : constantCoeff ((p : KK) • w) = 0 := by rw [smul_eq_C_mul, map_mul, hw0, mul_zero]
+  rw [e2, lg_one_add hy0]
+  intro n
+  rw [coeff_smul, coeff_subst_range _ hy0, smul_eq_mul, Finset.mul_sum]
+  apply OI_sum hp
+  intro d _
+  rw [smul_pow, coeff_smul, smul_eq_mul, Lser, coeff_mk]
+  split_ifs with hd
+  · simp
+    exact OI_zero hp
+  · have : (p : KK)⁻¹ * ((-1 : KK) ^ (d + 1) / d * ((p : KK) ^ d * coeff n (w ^ d))) =
+        rr ((-1) ^ (d + 1) * ((p : ℚ) ^ (d - 1) / d)) * coeff n (w ^ d) := by
+      simp only [rr, map_mul, map_pow, map_neg, map_one, map_div₀, map_natCast]
+      have hd1 : 1 ≤ d := Nat.one_le_iff_ne_zero.2 hd
+      have : (p : KK) ^ d = (p : KK) ^ (d - 1) * p := by rw [← pow_succ, Nat.sub_add_cancel hd1]
+      rw [this]
+      have hdK : (d : KK) ≠ 0 := by exact_mod_cast hd
+      field_simp
+    rw [this]
+    refine OI_mul hp (OI_rat hp (pint_mul hp ?_ (pint_ppow_div hp (Nat.one_le_iff_ne_zero.2 hd))))
+      (OIs_pow hp hwi d n)
+    simpa using pint_int hp ((-1) ^ (d + 1))
+
+end dwork
+
 end A094061
