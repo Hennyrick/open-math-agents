@@ -131,6 +131,14 @@ lemma aa_rel {p : ℕ} (hp : p.Prime) (k : ℕ) :
   field_simp
   ring
 
+lemma aa_one (p : ℕ) : aa p 1 = -(p : KK) := by simp [aa]
+
+lemma Cq_p {p : ℕ} (hp : p.Prime) : C ((p : KK)⁻¹) * ((p : PK)) = 1 := by
+  rw [← map_natCast C p, ← map_mul, inv_mul_cancel₀ (pKK_ne hp), map_one]
+
+lemma E1_Cmul (c : KK) (A : PK) : E1 (C c * A) = C c * E1 A := by
+  rw [E1_mul, E1_C]; ring
+
 section identity
 variable {p : ℕ} (hp : p.Prime) (h3 : ¬ 3 ∣ p) (κ Uc : KK) (u : PK) (hu1 : constantCoeff u = 1)
 
@@ -188,6 +196,60 @@ lemma E1_H3 (N : ℕ) : E1 (H3 hp h3 κ u N) =
   rw [show k + 2 - 1 = k + 1 by omega, show k + 2 + 1 = k + 3 by omega]
   linear_combination (-(UU hp h3 u ^ (k + 2) * ell u * RR h3 κ u (k + 3))) * e2
     - (UU hp h3 u ^ (k + 1) * E1 (UU hp h3 u) * RR h3 κ u (k + 2)) * e3
+
+lemma sum_shift (N : ℕ) :
+    ∑ k ∈ Finset.range N, C (aa p (k + 1) / p) * UU hp h3 u ^ (k + 1) * E1 (UU hp h3 u)
+      * RR h3 κ u (k + 2) =
+    C (aa p 1 / p) * UU hp h3 u * E1 (UU hp h3 u) * RR h3 κ u 2
+    + C ((p : KK)⁻¹) * E1 (UU hp h3 u) * ∑ k ∈ Finset.range N,
+      C (aa p (k + 2)) * UU hp h3 u ^ (k + 2) * RR h3 κ u (k + 3)
+    - C (aa p (N + 1) / p) * UU hp h3 u ^ (N + 1) * E1 (UU hp h3 u) * RR h3 κ u (N + 2) := by
+  set g : ℕ → PK := fun j => C (aa p j / p) * UU hp h3 u ^ j * E1 (UU hp h3 u) * RR h3 κ u (j + 1)
+  have h1 := Finset.sum_range_succ (fun k => g (k + 1)) N
+  have h2 := Finset.sum_range_succ' (fun k => g (k + 1)) N
+  have h3' : ∑ k ∈ Finset.range N, g (k + 2) = C ((p : KK)⁻¹) * E1 (UU hp h3 u) *
+      ∑ k ∈ Finset.range N, C (aa p (k + 2)) * UU hp h3 u ^ (k + 2) * RR h3 κ u (k + 3) := by
+    rw [Finset.mul_sum]
+    refine Finset.sum_congr rfl (fun k _ => ?_)
+    simp only [g, div_eq_inv_mul, map_mul]; ring
+  simp only [g] at h1 h2 h3'
+  simp only [add_assoc, Nat.reduceAdd, pow_one, zero_add] at h1 h2 h3'
+  linear_combination h2 - h1 + h3'
+
+lemma SS_split (N : ℕ) : SS hp h3 κ u N = RR h3 κ u 1 + C (aa p 1) * UU hp h3 u * RR h3 κ u 2
+    + ∑ k ∈ Finset.range N, C (aa p (k + 2)) * UU hp h3 u ^ (k + 2) * RR h3 κ u (k + 3) := by
+  rw [SS, Finset.sum_range_succ', Finset.sum_range_succ']
+  simp [aa]; ring
+
+lemma E1_H1 : E1 (H1 h3 κ Uc u) = ell u * (thk 1 Li2).subst (ff κ u)
+    - C ((p : KK)⁻¹) * ell u * RR h3 κ u 1 - C Uc * ell u * (thk 2 Li2).subst (ff κ u) := by
+  rw [H1, E1_sub, E1_sub, E1_Cmul, E1_Cmul, E1_Li2_ff hp κ u hu1, E1_Li2_ww hp h3 κ u hu1,
+    E1_thk_ff hp κ u hu1 1]
+  have e : C (((p : KK) ^ 2)⁻¹) * ((p : PK)) = C ((p : KK)⁻¹) := by
+    rw [← map_natCast C p, ← map_mul]; congr 1; field_simp [pKK_ne hp]
+  linear_combination (-(ell u * RR h3 κ u 1)) * e
+
+lemma E1_H2 : E1 (H2 hp h3 κ u) = E1 (UU hp h3 u) * (-(thk 1 Li2).subst (ff κ u)
+    + C ((p : KK)⁻¹) * RR h3 κ u 1) + UU hp h3 u * (-(ell u * (thk 2 Li2).subst (ff κ u))
+    + ell u * RR h3 κ u 2) := by
+  rw [H2, show (thk 1 Li2).subst (ww h3 κ u) = RR h3 κ u 1 from rfl, E1_mul, E1_add, E1_neg,
+    E1_Cmul, E1_thk_ff hp κ u hu1 1, E1_RR hp h3 κ u hu1 1]
+  have e := Cq_p hp
+  linear_combination (UU hp h3 u * ell u * RR h3 κ u 2) * e
+
+/-- Claim B: the derivative of `H` is the Taylor-truncated pairing up to a boundary term. -/
+lemma main_identity (N : ℕ) :
+    E1 (H1 h3 κ Uc u + H2 hp h3 κ u + H3 hp h3 κ u N) = Ep' hp h3 κ Uc u N
+      - C (aa p (N + 1) / p) * UU hp h3 u ^ (N + 1) * E1 (UU hp h3 u) * RR h3 κ u (N + 2) := by
+  rw [E1_add, E1_add, E1_H1 hp h3 κ Uc u hu1, E1_H2 hp h3 κ u hu1, E1_H3 hp h3 κ u hu1,
+    sum_shift hp h3 κ u hu1, Ep', SS_split hp h3 κ u hu1, aa_one p]
+  have h1 : C (-(p : KK) / p) = -1 := by
+    rw [show (-(p : KK)) / p = -1 by field_simp [pKK_ne hp], map_neg, map_one]
+  have h2 : C ((p : KK)⁻¹) * C (-(p : KK)) = -1 := by
+    rw [← map_mul, mul_neg, inv_mul_cancel₀ (pKK_ne hp), map_neg, map_one]
+  rw [h1]
+  linear_combination (UU hp h3 u * RR h3 κ u 2 * ell u
+    - UU hp h3 u * RR h3 κ u 2 * E1 (UU hp h3 u)) * h2
 
 end identity
 
